@@ -57,7 +57,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
-knitr::opts_knit$set(root.dir = "..")
+# knitr::opts_knit$set(root.dir = "..")
 ```
 
 
@@ -67,6 +67,7 @@ library(tidyverse)
 library(lubridate)
 library(BusinessDuration)
 library(timeDate)
+library(here)
 library(gt)
 ```
 
@@ -74,7 +75,7 @@ library(gt)
 ```{r load_clean_data, include = FALSE, message = FALSE, warning = FALSE}
 
 # load raw turnaround time data
-ta_time_Q <- readxl::read_excel("./data/2020q3-tat.xls",
+ta_time_Q <- readxl::read_excel(here("data", "2020q3-tat.xls"),
   col_types =
     c(
       "guess",
@@ -291,7 +292,7 @@ ta_time <- ta_time_Q %>%
 #   holidays: New Years, Memorial Day, Labor Day, 
 #             Independence Day, Thanksgiving, Christmas
 
-source("./src/src_TA-time_params.R")
+source(here("src", "src_TA-time_params.R"))
 
 ta_time$span <- sapply(1:nrow(ta_time), function(x) {
   businessDuration(
