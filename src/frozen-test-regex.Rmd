@@ -1,0 +1,356 @@
+---
+title: ""
+output: html_document
+params:
+  year:
+    label: Year
+    value: 2020
+    input: select
+    choices:
+    - 2020
+    - 2021
+    - 2022
+    - 2023
+    - 2024
+    - 2025
+  period:
+    label: Time Period
+    value: July
+    input: select
+    choices: 
+    - January
+    - February
+    - March
+    - April
+    - May
+    - June
+    - July
+    - August
+    - September
+    - October
+    - November
+    - December
+  cl_grp:
+    label: Client Group
+    value: UC Health North
+    input: select
+    choices: 
+    - Banner Health
+    - Centers for Gastroenterology
+    - Colorado Plains Medical Center
+    - Cheyenne Regional Medical Center
+    - Estes Park Health Hospital
+    - Ivinson Memorial Hospital
+    - Kimball County Hospital
+    - Melissa Memorial Hospital
+    - Memorial Hospital of Carbon County
+    - Memorial Hospital of Converse County
+    - Memorial Outpatient
+    - Summit Pathology Outpatient
+    - Tech Only Clients
+    - UC Health North
+    - UC Health South
+    - Wyoming Veterans Administration
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r load_libraries, message = FALSE, warning = FALSE}
+
+library(tidyverse)
+library(lubridate)
+library(BusinessDuration)
+library(timeDate)
+library(here)
+library(gt)
+```
+
+
+```{r load_clean_data, include = FALSE, message = FALSE, warning = FALSE}
+ta_time <- 
+  list.files(path = here("data"),
+           pattern = "(\\d){4}-(\\d){2}-frozen\\.xls",
+           full.names = TRUE) %>% 
+  sapply(readxl::read_excel, simplify = FALSE, 
+         col_types =
+           c("guess", "guess", "guess", "guess", "text", "guess", "guess", 
+             "guess", "guess",  "guess", "guess", "guess")
+  ) %>% 
+  bind_rows() %>% 
+  mutate(
+    `SEQUENCE GROUP` = str_replace(`SEQUENCE GROUP`, "\\*SURG", "SURG"),
+    `SEQUENCE GROUP` = str_replace(`SEQUENCE GROUP`, "OP SURG", "SURG OP"),
+    `SEQUENCE GROUP` = str_replace(`SEQUENCE GROUP`, "OP NGYN", "NGYN OP"),
+    PATHOLOGIST = str_replace(PATHOLOGIST, "\\[x] ", ""),
+    type = str_extract(`SEQUENCE GROUP`, "()[^(]+") %>% str_trim(),
+    client = str_extract(`SEQUENCE GROUP`, "(?<=\\().*?(?=\\))"),
+    Create = mdy_hm(Create),
+    `original release` = mdy_hm(`original release`),
+    period = month(Create, label = TRUE, abbr = FALSE),
+    grp = case_when(
+      `SEQUENCE GROUP` == "NGYN (BFCMC)" ~ "Banner Fort Collins Medical Center",
+      `SEQUENCE GROUP` == "NGYN (CFG)" ~ "Centers for Gastroenterology",
+      `SEQUENCE GROUP` == "NGYN (CPMC)" ~ "Colorado Plains Medical Center",
+      `SEQUENCE GROUP` == "NGYN (CRMC)" ~ "Cheyenne Regional Medical Center",
+      `SEQUENCE GROUP` == "NGYN (EMCH)" ~ "East Morgan County Hospital",
+      `SEQUENCE GROUP` == "NGYN (EPMC)" ~ "Estes Park Health Hospital",
+      `SEQUENCE GROUP` == "NGYN (FR DERM)" ~ "Tech Only Clients",
+      `SEQUENCE GROUP` == "NGYN (GRANDVIEW)" ~ "Grandview Hospital",
+      `SEQUENCE GROUP` == "NGYN (HS)" ~ "Melissa Memorial Hospital",
+      `SEQUENCE GROUP` == "NGYN (IMH)" ~ "Ivinson Memorial Hospital",
+      `SEQUENCE GROUP` == "NGYN (JL DERM)" ~ "Tech Only Clients",
+      `SEQUENCE GROUP` == "NGYN (KHS)" ~ "Kimball County Hospital",
+      `SEQUENCE GROUP` == "NGYN (McKee)" ~ "McKee Medical Center",
+      `SEQUENCE GROUP` == "NGYN (MCR)" ~ "Medical Center of the Rockies",
+      `SEQUENCE GROUP` == "NGYN (MHC)" ~ "Memorial Hospital Central",
+      `SEQUENCE GROUP` == "NGYN (MHCC DC)" ~ "Memorial Hospital of Converse County",
+      `SEQUENCE GROUP` == "NGYN (MHN)" ~ "Memorial Hospital North",
+      `SEQUENCE GROUP` == "NGYN (NCMC)" ~ "North Colorado Medical Center",
+      `SEQUENCE GROUP` == "NGYN (OCH)" ~ "Ogallala Community Hospital",
+      `SEQUENCE GROUP` == "NGYN (PCMH)" ~ "Platte County Memorial Hospital",
+      `SEQUENCE GROUP` == "NGYN (PEAK)" ~ "Summit Pathology Outpatient",
+      `SEQUENCE GROUP` == "NGYN (PVH)" ~ "Poudre Valley Hospital",
+      `SEQUENCE GROUP` == "NGYN (RAWLINS)" ~ "Memorial Hospital of Carbon County",
+      `SEQUENCE GROUP` == "NGYN (SRMC)" ~ "Sterling Regional Medical Center",
+      `SEQUENCE GROUP` == "NGYN (TORRINGTON)" ~ "Torrington Community Hospital",
+      `SEQUENCE GROUP` == "NGYN (UCHGH)" ~ "Greeley Hospital",
+      `SEQUENCE GROUP` == "NGYN (WOODLAND)" ~ "Pikes Peak Regional Hospital",
+      `SEQUENCE GROUP` == "NGYN (WY VA)" ~ "Wyoming Veterans Administration",
+      `SEQUENCE GROUP` == "NGYN OP (MHN)" ~ "Memorial Outpatient",
+      `SEQUENCE GROUP` == "NGYN OP (SP)" ~ "Summit Pathology Outpatient",
+      `SEQUENCE GROUP` == "NGYN OP (SPWY)" ~ "Summit Pathology Outpatient",
+      `SEQUENCE GROUP` == "SURG (BFCMC)" ~ "Banner Fort Collins Medical Center",
+      `SEQUENCE GROUP` == "SURG (CFG)" ~ "Centers for Gastroenterology",
+      `SEQUENCE GROUP` == "SURG (CPMC)" ~ "Colorado Plains Medical Center",
+      `SEQUENCE GROUP` == "SURG (CRMC)" ~ "Cheyenne Regional Medical Center",
+      `SEQUENCE GROUP` == "SURG (EMCH)" ~ "East Morgan County Hospital",
+      `SEQUENCE GROUP` == "SURG (EPMC)" ~ "Estes Park Health Hospital",
+      `SEQUENCE GROUP` == "SURG (FR DERM)" ~ "Tech Only Clients",
+      `SEQUENCE GROUP` == "SURG (GRANDVIEW)" ~ "Grandview Hospital",
+      `SEQUENCE GROUP` == "SURG (HS)" ~ "Melissa Memorial Hospital",
+      `SEQUENCE GROUP` == "SURG (IMH)" ~ "Ivinson Memorial Hospital",
+      `SEQUENCE GROUP` == "SURG (JL DERM)" ~ "Tech Only Clients",
+      `SEQUENCE GROUP` == "SURG (KHS)" ~ "Kimball County Hospital",
+      `SEQUENCE GROUP` == "SURG (McKee)" ~ "McKee Medical Center",
+      `SEQUENCE GROUP` == "SURG (MCR)" ~ "Medical Center of the Rockies",
+      `SEQUENCE GROUP` == "SURG (MHC)" ~ "Memorial Hospital Central",
+      `SEQUENCE GROUP` == "SURG (MHCC DC)" ~ "Memorial Hospital of Converse County",
+      `SEQUENCE GROUP` == "SURG (MHN)" ~ "Memorial Hospital North",
+      `SEQUENCE GROUP` == "SURG (NCMC)" ~ "North Colorado Medical Center",
+      `SEQUENCE GROUP` == "SURG (OCH)" ~ "Ogallala Community Hospital",
+      `SEQUENCE GROUP` == "SURG (PCMH)" ~ "Platte County Memorial Hospital",
+      `SEQUENCE GROUP` == "SURG (PEAK)" ~ "Summit Pathology Outpatient",
+      `SEQUENCE GROUP` == "SURG (PVH)" ~ "Poudre Valley Hospital",
+      `SEQUENCE GROUP` == "SURG (RAWLINS)" ~ "Memorial Hospital of Carbon County",
+      `SEQUENCE GROUP` == "SURG (SRMC)" ~ "Sterling Regional Medical Center",
+      `SEQUENCE GROUP` == "SURG (TORRINGTON)" ~ "Torrington Community Hospital",
+      `SEQUENCE GROUP` == "SURG (UCHGH)" ~ "Greeley Hospital",
+      `SEQUENCE GROUP` == "SURG (WOODLAND)" ~ "Pikes Peak Regional Hospital",
+      `SEQUENCE GROUP` == "SURG (WY VA)" ~ "Wyoming Veterans Administration",
+      `SEQUENCE GROUP` == "SURG OP (MHN)" ~ "Memorial Outpatient",
+      `SEQUENCE GROUP` == "SURG OP (SP)" ~ "Summit Pathology Outpatient",
+      `SEQUENCE GROUP` == "SURG OP (SPWY)" ~ "Summit Pathology Outpatient",
+      TRUE ~ "Validate_Client"
+    ),
+    cl_grp = case_when(
+      `SEQUENCE GROUP` == "NGYN (BFCMC)" ~ "Banner Health",
+      `SEQUENCE GROUP` == "NGYN (CFG)" ~ "Centers for Gastroenterology",
+      `SEQUENCE GROUP` == "NGYN (CPMC)" ~ "Colorado Plains Medical Center",
+      `SEQUENCE GROUP` == "NGYN (CRMC)" ~ "Cheyenne Regional Medical Center",
+      `SEQUENCE GROUP` == "NGYN (EMCH)" ~ "Banner Health",
+      `SEQUENCE GROUP` == "NGYN (EPMC)" ~ "Estes Park Health Hospital",
+      `SEQUENCE GROUP` == "NGYN (FR DERM)" ~ "Tech Only Clients",
+      `SEQUENCE GROUP` == "NGYN (GRANDVIEW)" ~ "UC Health South",
+      `SEQUENCE GROUP` == "NGYN (HS)" ~ "Melissa Memorial Hospital",
+      `SEQUENCE GROUP` == "NGYN (IMH)" ~ "Ivinson Memorial Hospital",
+      `SEQUENCE GROUP` == "NGYN (JL DERM)" ~ "Tech Only Clients",
+      `SEQUENCE GROUP` == "NGYN (KHS)" ~ "Kimball County Hospital",
+      `SEQUENCE GROUP` == "NGYN (McKee)" ~ "Banner Health",
+      `SEQUENCE GROUP` == "NGYN (MCR)" ~ "UC Health North",
+      `SEQUENCE GROUP` == "NGYN (MHC)" ~ "UC Health South",
+      `SEQUENCE GROUP` == "NGYN (MHCC DC)" ~ "Memorial Hospital of Converse County",
+      `SEQUENCE GROUP` == "NGYN (MHN)" ~ "UC Health South",
+      `SEQUENCE GROUP` == "NGYN (NCMC)" ~ "Banner Health",
+      `SEQUENCE GROUP` == "NGYN (OCH)" ~ "Banner Health",
+      `SEQUENCE GROUP` == "NGYN (PCMH)" ~ "Banner Health",
+      `SEQUENCE GROUP` == "NGYN (PEAK)" ~ "Summit Pathology Outpatient",
+      `SEQUENCE GROUP` == "NGYN (PVH)" ~ "UC Health North",
+      `SEQUENCE GROUP` == "NGYN (RAWLINS)" ~ "Memorial Hospital of Carbon County",
+      `SEQUENCE GROUP` == "NGYN (SRMC)" ~ "Banner Health",
+      `SEQUENCE GROUP` == "NGYN (TORRINGTON)" ~ "Banner Health",
+      `SEQUENCE GROUP` == "NGYN (UCHGH)" ~ "UC Health North",
+      `SEQUENCE GROUP` == "NGYN (WOODLAND)" ~ "UC Health South",
+      `SEQUENCE GROUP` == "NGYN (WY VA)" ~ "Wyoming Veterans Administration",
+      `SEQUENCE GROUP` == "NGYN OP (MH)" ~ "Memorial Outpatient",
+      `SEQUENCE GROUP` == "NGYN OP (SP)" ~ "Summit Pathology Outpatient",
+      `SEQUENCE GROUP` == "NGYN OP (SPWY)" ~ "Summit Pathology Outpatient",
+      `SEQUENCE GROUP` == "SURG (BFCMC)" ~ "Banner Health",
+      `SEQUENCE GROUP` == "SURG (CFG)" ~ "Centers for Gastroenterology",
+      `SEQUENCE GROUP` == "SURG (CPMC)" ~ "Colorado Plains Medical Center",
+      `SEQUENCE GROUP` == "SURG (CRMC)" ~ "Cheyenne Regional Medical Center",
+      `SEQUENCE GROUP` == "SURG (EMCH)" ~ "Banner Health",
+      `SEQUENCE GROUP` == "SURG (EPMC)" ~ "Estes Park Health Hospital",
+      `SEQUENCE GROUP` == "SURG (FR DERM)" ~ "Tech Only Clients",
+      `SEQUENCE GROUP` == "SURG (GRANDVIEW)" ~ "UC Health South",
+      `SEQUENCE GROUP` == "SURG (HS)" ~ "Melissa Memorial Hospital",
+      `SEQUENCE GROUP` == "SURG (IMH)" ~ "Ivinson Memorial Hospital",
+      `SEQUENCE GROUP` == "SURG (JL DERM)" ~ "Tech Only Clients",
+      `SEQUENCE GROUP` == "SURG (KHS)" ~ "Kimball County Hospital",
+      `SEQUENCE GROUP` == "SURG (McKee)" ~ "Banner Health",
+      `SEQUENCE GROUP` == "SURG (MCR)" ~ "UC Health North",
+      `SEQUENCE GROUP` == "SURG (MHC)" ~ "UC Health South",
+      `SEQUENCE GROUP` == "SURG (MHCC DC)" ~ "Memorial Hospital of Converse County",
+      `SEQUENCE GROUP` == "SURG (MHN)" ~ "UC Health South",
+      `SEQUENCE GROUP` == "SURG (NCMC)" ~ "Banner Health",
+      `SEQUENCE GROUP` == "SURG (OCH)" ~ "Banner Health",
+      `SEQUENCE GROUP` == "SURG (PCMH)" ~ "Banner Health",
+      `SEQUENCE GROUP` == "SURG (PEAK)" ~ "Summit Pathology Outpatient",
+      `SEQUENCE GROUP` == "SURG (PVH)" ~ "UC Health North",
+      `SEQUENCE GROUP` == "SURG (RAWLINS)" ~ "Memorial Hospital of Carbon County",
+      `SEQUENCE GROUP` == "SURG (SRMC)" ~ "Banner Health",
+      `SEQUENCE GROUP` == "SURG (TORRINGTON)" ~ "Banner Health",
+      `SEQUENCE GROUP` == "SURG (UCHGH)" ~ "UC Health North",
+      `SEQUENCE GROUP` == "SURG (WOODLAND)" ~ "UC Health South",
+      `SEQUENCE GROUP` == "SURG (WY VA)" ~ "Wyoming Veterans Administration",
+      `SEQUENCE GROUP` == "SURG OP (MH)" ~ "Memorial Outpatient",
+      `SEQUENCE GROUP` == "SURG OP (SP)" ~ "Summit Pathology Outpatient",
+      `SEQUENCE GROUP` == "SURG OP (SPWY)" ~ "Summit Pathology Outpatient",
+      TRUE ~ "Validate_Client"
+    )
+  ) %>%
+  filter(!is.na(`original release`), 
+         cl_grp == params$cl_grp,
+         !is.na(PATHOLOGIST)) # drop deleted records
+```
+
+
+```{r calculate turnaround time, message = FALSE, warning = FALSE}
+
+# Turnaround time function ------------------------------------------------
+# function to calculate time from case created to initial release
+#   exclude weekends and holidays from time calculations
+#   holidays: New Years, Memorial Day, Labor Day, 
+#             Independence Day, Thanksgiving, Christmas
+
+source(here("src", "src_TA-time_params.R"))
+
+ta_time$span <- sapply(1:nrow(ta_time), function(x) {
+  businessDuration(
+    startdate = ta_time$Create[x],
+    enddate = ta_time$`original release`[x],
+    starttime = starttime,
+    endtime = endtime,
+    weekendlist = weekend_list,
+    holidaylist = US_holiday_list,
+    unit = unit_hour
+  )
+})
+```
+
+
+<div align = "center">
+![](sp-logo.png){width=25%}
+
+# **`r params$cl_grp`**
+
+# **`r params$period` `r params$year`**
+
+</div>
+
+
+```{r table TAT for client group, message = FALSE, warning = FALSE}
+
+ta_time %>%
+  filter(cl_grp == params$cl_grp, period == params$period) %>% 
+  mutate(
+    tat_surg = if_else(type == "SURG", span, NULL),
+    tat_ngyn = if_else(type == "NGYN", span, NULL),
+    tat_frozen = if_else(is.na(`FROZEN COMPLICATION`), `FROZEN DURATION`, NULL)
+  ) %>%
+  group_by(grp) %>%
+  summarize(
+    frozen = sum(!is.na(tat_frozen)),
+    `< 20 min` = sum(tat_frozen <= 20, na.rm = TRUE),
+    `TAT (min)` = round(mean(tat_frozen, na.rm = TRUE), 2),
+    `% < 20 min` = (sum(tat_frozen <= 20, na.rm = TRUE)) /
+      (sum(!is.na(tat_frozen))),
+    `n (SURG)` = sum(type == "SURG"),
+    surg48 = sum(type == "SURG" & span <= 48),
+    `TAT (hrs, SURG)` = mean(tat_surg, na.rm = TRUE),
+    `% < 48 hrs (SURG)` = (sum(tat_surg <= 48, na.rm = TRUE)) / `n (SURG)`,
+    `n (NGYN)` = sum(type == "NGYN"),
+    ngyn48 = sum(type == "NGYN" & span <= 48),
+    `TAT (hrs, NGYN)` = mean(tat_ngyn, na.rm = TRUE),
+    `% < 48 hrs (NGYN)` = (sum(tat_ngyn <= 48, na.rm = TRUE)) / `n (NGYN)`
+  ) %>%
+  gt(rowname_col = "grp", auto_align = TRUE) %>%
+  tab_header(title = md("Turnaround Time Report"),
+             subtitle = "") %>%
+  tab_spanner(label = md("**Frozen (under 20 min)**"),
+              vars(frozen,
+                   `< 20 min`,
+                   `TAT (min)`,
+                   `% < 20 min`)) %>% 
+  tab_spanner(label = md("**Surgical**"),
+              vars(`n (SURG)`,
+                   surg48,
+                   `TAT (hrs, SURG)`,
+                   `% < 48 hrs (SURG)`)) %>% 
+  tab_spanner(label = md("**Non-Gyn**"),
+              vars(`n (NGYN)`,
+                   ngyn48,
+                   `TAT (hrs, NGYN)`,
+                   `% < 48 hrs (NGYN)`)) %>% 
+  fmt_number(
+    columns = vars(`TAT (min)`,
+                   `TAT (hrs, SURG)`,
+                   `TAT (hrs, NGYN)`),
+    decimals = 1,
+    use_seps = TRUE
+  ) %>%
+  fmt_number(
+    columns =
+      vars(frozen,
+           `< 20 min`,
+           `n (SURG)`,
+           `n (NGYN)`,
+           surg48,
+           ngyn48),
+    decimals = 0,
+    use_seps = TRUE
+  ) %>%
+  fmt_percent(
+    columns = vars(`% < 20 min`, 
+                   `% < 48 hrs (SURG)`,
+                   `% < 48 hrs (NGYN)`),
+    decimals = 1,
+    use_seps = TRUE
+  ) %>% 
+  cols_label(
+    frozen = "n",
+    `< 20 min` = "< 20 min",
+    `TAT (min)` = "Avg (min)",
+    `% < 20 min` = "Percentage",
+    `n (SURG)` = "n",
+    surg48 = "< 48 hrs",
+    `TAT (hrs, SURG)` = "Avg (hrs)",
+    `% < 48 hrs (SURG)` = "Percentage",
+    `n (NGYN)` = "n",
+    ngyn48 = "< 48 hrs",
+    `TAT (hrs, NGYN)` = "Avg (hrs)",
+    `% < 48 hrs (NGYN)` = "Percentage"
+  ) %>% 
+  cols_align(align = "center") %>%
+  tab_options(table.width = pct(100),
+              # table.font.size = px(12),
+              heading.title.font.size = "28px",
+              heading.subtitle.font.size = px(28),
+              heading.title.font.weight = "bold",
+              heading.subtitle.font.weight = "bold"
+              )
+```
