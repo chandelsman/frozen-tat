@@ -197,7 +197,8 @@ ta_time <- tat_raw %>%
       TRUE ~ "Validate_Client"
     )
   ) %>%
-  filter(!is.na(`original release`), 
+  filter(cl_grp == params$cl_grp,
+         !is.na(`original release`), 
          !is.na(PATHOLOGIST) # drop deleted records
   )
 ```
