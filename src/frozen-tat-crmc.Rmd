@@ -230,7 +230,7 @@ ta_time$span <- sapply(1:nrow(ta_time), function(x) {
 <div align = "center">
 ![](sp-logo.png){width=25%}
 
-# Turnaround Time Report: 2020 Q1--Q3
+# Turnaround Time Report: 2020 Q1--Q4
 
 ## `r params$cl_grp`
 
@@ -464,6 +464,104 @@ ta_time %>%
   ) %>% 
   gt(rowname_col = "PATHOLOGIST", auto_align = TRUE) %>%
   tab_header(title = md("Third Quarter Turnaround Time Statistics"),
+             subtitle = "") %>%
+  tab_spanner(label = md("**Frozen (under 20 min)**"),
+              vars(frozen,
+                   `< 20 min`,
+                   `TAT (min)`,
+                   `% < 20 min`)) %>% 
+  tab_spanner(label = md("**Surgical**"),
+              vars(`n (SURG)`,
+                   surg48,
+                   `TAT (hrs, SURG)`,
+                   `% < 48 hrs (SURG)`)) %>% 
+  tab_spanner(label = md("**Non-Gyn**"),
+              vars(`n (NGYN)`,
+                   ngyn48,
+                   `TAT (hrs, NGYN)`,
+                   `% < 48 hrs (NGYN)`)) %>% 
+  fmt_number(
+    columns = vars(`TAT (min)`,
+                   `TAT (hrs, SURG)`,
+                   `TAT (hrs, NGYN)`),
+    decimals = 1,
+    use_seps = TRUE
+  ) %>%
+  fmt_number(
+    columns =
+      vars(frozen,
+           `< 20 min`,
+           `n (SURG)`,
+           `n (NGYN)`,
+           surg48,
+           ngyn48),
+    decimals = 0,
+    use_seps = TRUE
+  ) %>%
+  fmt_percent(
+    columns = vars(`% < 20 min`, 
+                   `% < 48 hrs (SURG)`,
+                   `% < 48 hrs (NGYN)`),
+    decimals = 1,
+    use_seps = TRUE
+  ) %>% 
+  fmt_missing(everything()) %>% 
+  cols_label(
+    frozen = "n",
+    `< 20 min` = "< 20 min",
+    `TAT (min)` = "Avg (min)",
+    `% < 20 min` = "Percentage",
+    `n (SURG)` = "n",
+    surg48 = "< 48 hrs",
+    `TAT (hrs, SURG)` = "Avg (hrs)",
+    `% < 48 hrs (SURG)` = "Percentage",
+    `n (NGYN)` = "n",
+    ngyn48 = "< 48 hrs",
+    `TAT (hrs, NGYN)` = "Avg (hrs)",
+    `% < 48 hrs (NGYN)` = "Percentage"
+  ) %>% 
+  cols_align(align = "center") %>%
+  tab_options(table.width = pct(100),
+              # table.font.size = px(12),
+              heading.title.font.size = "28px",
+              heading.subtitle.font.size = px(28),
+              heading.title.font.weight = "bold",
+              heading.subtitle.font.weight = "bold"
+              )
+```
+
+\newpage
+
+```{r Q4 table, message = FALSE, warning = FALSE}
+# Quarter 4 -----
+ta_time %>%
+  mutate(
+    Create = date(Create),
+    `original release` = date(`original release`),
+    tat_surg = if_else(type == "SURG", span, NULL),
+    tat_ngyn = if_else(type == "NGYN", span, NULL),
+    tat_frozen = if_else(is.na(`FROZEN COMPLICATION`), `FROZEN DURATION`, NULL)
+  ) %>% 
+  filter(`original release` >= "2020-10-01" & 
+           `original release` <= "2020-12-31") %>%
+  group_by(PATHOLOGIST) %>%
+  summarize(
+    frozen = sum(!is.na(tat_frozen)),
+    `< 20 min` = sum(tat_frozen <= 20, na.rm = TRUE),
+    `TAT (min)` = round(mean(tat_frozen, na.rm = TRUE), 2),
+    `% < 20 min` = (sum(tat_frozen <= 20, na.rm = TRUE)) /
+      (sum(!is.na(tat_frozen))),
+    `n (SURG)` = sum(type == "SURG"),
+    surg48 = sum(type == "SURG" & span <= 48),
+    `TAT (hrs, SURG)` = mean(tat_surg, na.rm = TRUE),
+    `% < 48 hrs (SURG)` = (sum(tat_surg <= 48, na.rm = TRUE)) / `n (SURG)`,
+    `n (NGYN)` = sum(type == "NGYN"),
+    ngyn48 = sum(type == "NGYN" & span <= 48),
+    `TAT (hrs, NGYN)` = mean(tat_ngyn, na.rm = TRUE),
+    `% < 48 hrs (NGYN)` = (sum(tat_ngyn <= 48, na.rm = TRUE)) / `n (NGYN)`
+  ) %>% 
+  gt(rowname_col = "PATHOLOGIST", auto_align = TRUE) %>%
+  tab_header(title = md("Fourth Quarter Turnaround Time Statistics"),
              subtitle = "") %>%
   tab_spanner(label = md("**Frozen (under 20 min)**"),
               vars(frozen,
