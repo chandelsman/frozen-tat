@@ -2,34 +2,6 @@
 title: ""
 output: html_document
 params:
-  year:
-    label: Year
-    value: 2020
-    input: select
-    choices:
-    - 2020
-    - 2021
-    - 2022
-    - 2023
-    - 2024
-    - 2025
-  period:
-    label: Time Period
-    value: July
-    input: select
-    choices: 
-    - January
-    - February
-    - March
-    - April
-    - May
-    - June
-    - July
-    - August
-    - September
-    - October
-    - November
-    - December
   dt_start:
     label: "Start Date"
     input: date
@@ -150,7 +122,7 @@ ta_time$span <- sapply(1:nrow(ta_time), function(x) {
 
 # **`r params$cl_grp`**
 
-# **`r params$period` `r params$year`**
+# **`r {lubridate::month(params$dt_start, label = TRUE, abbr = FALSE)}` `r {lubridate::year(params$dt_start)}`**
 
 </div>
 
@@ -158,7 +130,10 @@ ta_time$span <- sapply(1:nrow(ta_time), function(x) {
 ```{r table TAT for client group, message = FALSE, warning = FALSE}
 
 ta_time %>%
-  filter(cl_grp == params$cl_grp, period == params$period) %>% 
+  filter(cl_grp == params$cl_grp,
+         period == month(params$dt_start,
+                         label = TRUE,
+                         abbr = FALSE)) %>%  
   mutate(
     tat_surg = if_else(type == "SURG", span, NULL),
     tat_ngyn = if_else(type == "NGYN", span, NULL),
@@ -184,22 +159,22 @@ ta_time %>%
   tab_header(title = md("Turnaround Time Report"),
              subtitle = "") %>%
   tab_spanner(label = md("**Frozen (under 20 min)**"),
-              vars(frozen,
+              c(frozen,
                    `< 20 min`,
                    `TAT (min)`,
                    `% < 20 min`)) %>% 
   tab_spanner(label = md("**Surgical**"),
-              vars(`n (SURG)`,
+              c(`n (SURG)`,
                    surg48,
                    `TAT (hrs, SURG)`,
                    `% < 48 hrs (SURG)`)) %>% 
   tab_spanner(label = md("**Non-Gyn**"),
-              vars(`n (NGYN)`,
+              c(`n (NGYN)`,
                    ngyn48,
                    `TAT (hrs, NGYN)`,
                    `% < 48 hrs (NGYN)`)) %>% 
   fmt_number(
-    columns = vars(`TAT (min)`,
+    columns = c(`TAT (min)`,
                    `TAT (hrs, SURG)`,
                    `TAT (hrs, NGYN)`),
     decimals = 1,
@@ -207,7 +182,7 @@ ta_time %>%
   ) %>%
   fmt_number(
     columns =
-      vars(frozen,
+      c(frozen,
            `< 20 min`,
            `n (SURG)`,
            `n (NGYN)`,
@@ -217,7 +192,7 @@ ta_time %>%
     use_seps = TRUE
   ) %>%
   fmt_percent(
-    columns = vars(`% < 20 min`, 
+    columns = c(`% < 20 min`, 
                    `% < 48 hrs (SURG)`,
                    `% < 48 hrs (NGYN)`),
     decimals = 1,
