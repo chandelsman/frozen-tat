@@ -7,31 +7,31 @@ params:
     value: Cheyenne Regional Medical Center
     input: select
     choices: 
-    - Banner Health
-    - Centers for Gastroenterology
-    - Colorado Plains Medical Center
+    # - Banner Health
+    # - Centers for Gastroenterology
+    # - Colorado Plains Medical Center
     - Cheyenne Regional Medical Center
-    - Estes Park Health Hospital
-    - Ivinson Memorial Hospital
-    - Kimball County Hospital
-    - Melissa Memorial Hospital
-    - Memorial Hospital of Carbon County
-    - Memorial Hospital of Converse County
-    - Memorial Outpatient
-    - Summit Pathology Outpatient
-    - Tech Only Clients
+    # - Estes Park Health Hospital
+    # - Ivinson Memorial Hospital
+    # - Kimball County Hospital
+    # - Melissa Memorial Hospital
+    # - Memorial Hospital of Carbon County
+    # - Memorial Hospital of Converse County
+    # - Memorial Outpatient
+    # - Summit Pathology Outpatient
+    # - Tech Only Clients
     - UC Health North
-    - UC Health South
-    - Wyoming Veterans Administration
+    # - UC Health South
+    # - Wyoming Veterans Administration
   dt_start:
     label: "Start Date"
     input: date
-    value: !r Sys.Date()-90
+    value: !r lubridate::floor_date(Sys.Date()-15, "quarter")
     max: !r Sys.Date()
   dt_end: 
     label: "End Date"
     input: date
-    value: !r Sys.Date()-1
+    value: !r lubridate::ceiling_date(Sys.Date()-15, "quarter")-1
     max: !r Sys.Date()
 editor_options: 
   chunk_output_type: console
