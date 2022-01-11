@@ -20,7 +20,7 @@ params:
     # - Memorial Outpatient
     # - Summit Pathology Outpatient
     # - Tech Only Clients
-    - UC Health North
+    # - UC Health North
     # - UC Health South
     # - Wyoming Veterans Administration
   dt_start:
