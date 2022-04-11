@@ -17,22 +17,7 @@ params:
     value: UC Health North
     input: select
     choices: 
-    # - Banner Health
-    # - Centers for Gastroenterology
-    # - Colorado Plains Medical Center
-    # - Cheyenne Regional Medical Center
-    # - Estes Park Health Hospital
-    # - Ivinson Memorial Hospital
-    # - Kimball County Hospital
-    # - Melissa Memorial Hospital
-    # - Memorial Hospital of Carbon County
-    # - Memorial Hospital of Converse County
-    # - Memorial Outpatient
-    # - Summit Pathology Outpatient
-    # - Tech Only Clients
     - UC Health North
-    # - UC Health South
-    # - Wyoming Veterans Administration
 editor_options: 
   chunk_output_type: console
 ---
