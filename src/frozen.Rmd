@@ -5,12 +5,12 @@ params:
   dt_start:
     label: "Start Date"
     input: date
-    value: !r lubridate::floor_date(Sys.Date()-15, "quarter")
+    value: !r lubridate::floor_date(Sys.Date()-15, "month")
     max: !r Sys.Date()
   dt_end: 
     label: "End Date"
     input: date
-    value: !r lubridate::ceiling_date(Sys.Date()-15, "quarter")-1
+    value: !r lubridate::ceiling_date(Sys.Date()-15, "month")-1
     max: !r Sys.Date()
   cl_grp:
     label: Client Group
