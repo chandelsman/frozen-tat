@@ -26,14 +26,13 @@ editor_options:
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-
 ```{r load_libraries, message = FALSE, warning = FALSE}
-library(tidyverse)
-library(lubridate)
 library(BusinessDuration)
-library(timeDate)
-library(here)
 library(gt)
+library(here)
+library(lubridate)
+library(tidyverse)
+library(timeDate)
 ```
 
 ```{r load-functions, message = FALSE, warning = FALSE}
