@@ -14,10 +14,10 @@ params:
     max: !r Sys.Date()
   cl_grp:
     label: Client Group
-    value: UC Health North
+    value: UCHealth North
     input: select
     choices: 
-    - UC Health North
+    - UCHealth North
 editor_options: 
   chunk_output_type: console
 ---
