@@ -2,22 +2,22 @@
 title: ""
 output: html_document
 params:
+  cl_grp:
+    label: "Client Group"
+    value: Cheyenne Regional Medical Center
+    input: select
+    choices: 
+    - Cheyenne Regional Medical Center
   dt_start:
     label: "Start Date"
     input: date
-    value: !r lubridate::floor_date(Sys.Date()-15, "month")
+    value: !r lubridate::floor_date(Sys.Date()-15, "quarter")
     max: !r Sys.Date()
   dt_end: 
     label: "End Date"
     input: date
-    value: !r lubridate::ceiling_date(Sys.Date()-15, "month")-1
+    value: !r lubridate::ceiling_date(Sys.Date()-15, "quarter")-1
     max: !r Sys.Date()
-  cl_grp:
-    label: Client Group
-    value: UCHealth North
-    input: select
-    choices: 
-    - UCHealth North
 editor_options: 
   chunk_output_type: console
 ---
@@ -25,6 +25,7 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 ```
+
 
 ```{r load_libraries, message = FALSE, warning = FALSE}
 library(difftimeOffice)
@@ -41,11 +42,13 @@ library(timeDate)
 source(here("fns", "define-clients.R"))
 ```
 
+
 ```{r load_clean_data, include = FALSE, message = FALSE, warning = FALSE}
+# Specify files to include -----
 ta_time <- 
   list.files(path = here("data"),
-           pattern = "(\\d){4}-(\\d){2}-frozen\\.xls",
-           full.names = TRUE) %>% 
+                    pattern = "^(\\d{4}\\D\\d-frozen-.+)\\.xls",
+                    full.names = TRUE) %>% 
   sapply(readxl::read_excel, simplify = FALSE, 
          col_types =
            c("guess", "guess", "guess", "numeric", "text", "guess", "guess", 
@@ -72,7 +75,7 @@ ta_time <-
     as_date(Create) <= params$dt_end,
     !is.na(`original release`), # drop deleted records
     !is.na(PATHOLOGIST)
-  ) 
+  )
 ```
 
 
@@ -105,30 +108,30 @@ ta_time$span <-
 ta_time$span <- ta_time$span / 3600
 ```
 
-
 <div align = "center">
 ![](sp-logo.png){width=25%}
 
-# **`r params$cl_grp`**
+# **Turnaround Time Report: `r lubridate::year(params$dt_start)` Q`r lubridate::quarter(params$dt_start)`**
 
-# **`r {lubridate::month(params$dt_start, label = TRUE, abbr = FALSE)}` `r {lubridate::year(params$dt_start)}`**
+# **`r params$cl_grp`**
 
 </div>
 
+<br><br>
 
-```{r table TAT for client group, message = FALSE, warning = FALSE}
-
+```{r Q1 table, message = FALSE, warning = FALSE}
+# Quarterly results -----
 ta_time %>%
-  filter(cl_grp == params$cl_grp,
-         period == month(params$dt_start,
-                         label = TRUE,
-                         abbr = FALSE)) %>%  
   mutate(
+    Create = date(Create),
+    `original release` = date(`original release`),
     tat_surg = if_else(type == "SURG", span, NULL),
     tat_ngyn = if_else(type == "NGYN", span, NULL),
     tat_frozen = if_else(is.na(`FROZEN COMPLICATION`), `FROZEN DURATION`, NULL)
-  ) %>%
-  group_by(grp) %>%
+  ) %>% 
+  # filter(`original release` >= "2020-01-01" & 
+  #          `original release` <= "2020-03-31") %>%
+  group_by(PATHOLOGIST) %>%
   summarize(
     frozen = sum(!is.na(tat_frozen)),
     `< 20 min` = sum(tat_frozen <= 20, na.rm = TRUE),
@@ -143,27 +146,27 @@ ta_time %>%
     ngyn48 = sum(type == "NGYN" & span <= 48),
     `TAT (hrs, NGYN)` = mean(tat_ngyn, na.rm = TRUE),
     `% < 48 hrs (NGYN)` = (sum(tat_ngyn <= 48, na.rm = TRUE)) / `n (NGYN)`
-  ) %>%
-  gt(rowname_col = "grp", auto_align = TRUE) %>%
-  tab_header(title = md("Turnaround Time Report"),
+  ) %>% 
+  gt(rowname_col = "PATHOLOGIST", auto_align = TRUE) %>%
+  tab_header(title = md("Quarterly Turnaround Time Statistics"),
              subtitle = "") %>%
   tab_spanner(label = md("**Frozen (under 20 min)**"),
-              c(frozen,
+              vars(frozen,
                    `< 20 min`,
                    `TAT (min)`,
                    `% < 20 min`)) %>% 
   tab_spanner(label = md("**Surgical**"),
-              c(`n (SURG)`,
+              vars(`n (SURG)`,
                    surg48,
                    `TAT (hrs, SURG)`,
                    `% < 48 hrs (SURG)`)) %>% 
   tab_spanner(label = md("**Non-Gyn**"),
-              c(`n (NGYN)`,
+              vars(`n (NGYN)`,
                    ngyn48,
                    `TAT (hrs, NGYN)`,
                    `% < 48 hrs (NGYN)`)) %>% 
   fmt_number(
-    columns = c(`TAT (min)`,
+    columns = vars(`TAT (min)`,
                    `TAT (hrs, SURG)`,
                    `TAT (hrs, NGYN)`),
     decimals = 1,
@@ -171,7 +174,7 @@ ta_time %>%
   ) %>%
   fmt_number(
     columns =
-      c(frozen,
+      vars(frozen,
            `< 20 min`,
            `n (SURG)`,
            `n (NGYN)`,
@@ -181,12 +184,13 @@ ta_time %>%
     use_seps = TRUE
   ) %>%
   fmt_percent(
-    columns = c(`% < 20 min`, 
+    columns = vars(`% < 20 min`, 
                    `% < 48 hrs (SURG)`,
                    `% < 48 hrs (NGYN)`),
     decimals = 1,
     use_seps = TRUE
   ) %>% 
+  fmt_missing(everything()) %>% 
   cols_label(
     frozen = "n",
     `< 20 min` = "< 20 min",
@@ -210,3 +214,5 @@ ta_time %>%
               heading.subtitle.font.weight = "bold"
               )
 ```
+
+<br>
