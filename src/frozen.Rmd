@@ -28,6 +28,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ```{r load_libraries, message = FALSE, warning = FALSE}
 library(BusinessDuration)
+library(difftimeOffice)
 library(gt)
 library(here)
 library(lubridate)
@@ -35,16 +36,23 @@ library(tidyverse)
 library(timeDate)
 ```
 
-```{r load-functions, message = FALSE, warning = FALSE}
+```{r load-functions, warning = FALSE}
 # Import functions --------------------------------------------------------
 # Generate dates of holidays, weekends, start, and stop times
-source(here("fns", "calculate-time-parameters.R"))
+### Needed when using BusinessDuration package prior to 2023-01-01 ###
+# source(here("fns", "calculate-time-parameters.R"))
 
 # Standardize client names and abbreviations
 source(here("fns", "define-clients.R"))
 ```
 
-```{r load_clean_data, include = FALSE, message = FALSE, warning = FALSE}
+```{r load_clean_data, include = FALSE, warning = FALSE}
+# parameters for testing
+# uncomment code below and adjust start/end times when testing
+# params <- tibble(dt_start = "2023-01-01",
+#                  dt_end = "2023-01-31", 
+#                  cl_grp = "UCHealth North")
+
 ta_time <- 
   list.files(path = here("data"),
            pattern = "(\\d){4}-(\\d){2}-frozen\\.xls",
@@ -79,7 +87,7 @@ ta_time <-
 ```
 
 
-```{r calculate turnaround time, message = FALSE, warning = FALSE}
+```{r calculate turnaround time with BusinessDuration, warning = FALSE}
 
 # Turnaround time function ------------------------------------------------
 # function to calculate time from case created to initial release
@@ -87,19 +95,55 @@ ta_time <-
 #   holidays: New Years, Memorial Day, Labor Day, 
 #             Independence Day, Thanksgiving, Christmas
 
-ta_time$span <- sapply(1:nrow(ta_time), function(x) {
-  businessDuration(
-    startdate = ta_time$Create[x],
-    enddate = ta_time$`original release`[x],
-    starttime = starttime,
-    endtime = endtime,
-    weekendlist = weekend_list,
-    holidaylist = US_holiday_list,
-    unit = unit_hour
-  )
-})
+# ta_time$span <- sapply(1:nrow(ta_time), function(x) {
+#   businessDuration(
+#     startdate = ta_time$Create[x],
+#     enddate = ta_time$`original release`[x],
+#     starttime = starttime,
+#     endtime = endtime,
+#     weekendlist = weekend_list,
+#     holidaylist = US_holiday_list,
+#     unit = unit_hour
+#   )
+# })
 ```
 
+```{r calculate turnaround time with difftimeOffice, warning = FALSE}
+
+### Started using this function on 2023-01 ###
+
+# Turnaround time function ------------------------------------------------
+# function to calculate time from case created to initial release
+#   exclude weekends and holidays from time calculations
+#   holidays: New Years, Memorial Day, Labor Day, 
+#             Independence Day, Thanksgiving, Christmas
+
+ta_time$span <-
+  sapply(1:nrow(ta_time), function(x) {
+    difftime_office_hours(
+      started = ta_time$Create[x],
+      ended = ta_time$`original release`[x],
+      working_hours = c(0, 24),
+      holidays =
+        c(
+          "2022-01-03",
+          "2022-05-30",
+          "2022-07-04",
+          "2022-09-05",
+          "2022-11-24",
+          "2022-12-26",
+          "2023-01-01",
+          "2023-05-29",
+          "2023-07-04",
+          "2023-09-04",
+          "2023-11-23",
+          "2023-12-25"
+        )
+    )
+  })
+
+ta_time$span <- ta_time$span / 3600
+```
 
 <div align = "center">
 ![](sp-logo.png){width=25%}
@@ -111,7 +155,7 @@ ta_time$span <- sapply(1:nrow(ta_time), function(x) {
 </div>
 
 
-```{r table TAT for client group, message = FALSE, warning = FALSE}
+```{r table TAT for client group, warning = FALSE}
 
 ta_time %>%
   filter(cl_grp == params$cl_grp,
@@ -119,9 +163,9 @@ ta_time %>%
                          label = TRUE,
                          abbr = FALSE)) %>%  
   mutate(
-    tat_surg = if_else(type == "SURG", span, NULL),
-    tat_ngyn = if_else(type == "NGYN", span, NULL),
-    tat_frozen = if_else(is.na(`FROZEN COMPLICATION`), `FROZEN DURATION`, NULL)
+    tat_surg = if_else(type == "SURG", span, NA),
+    tat_ngyn = if_else(type == "NGYN", span, NA),
+    tat_frozen = if_else(is.na(`FROZEN COMPLICATION`), `FROZEN DURATION`, NA)
   ) %>%
   group_by(grp) %>%
   summarize(
