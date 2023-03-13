@@ -24,7 +24,7 @@ Query is performed in LigoLab
 
 ## Output
 
-Reports are produced with an Rmarkdown script (src > frozen.Rmd) . Knit (with parameters) a report for the month and save the resulting html file as PDF (print at 85% scaling in Chrome). Send turnaround time reports to Joel Karagacha ([joel.karagacha@uchealth.org](mailto:joel.karagacha@uchealth.org))
+Reports are produced with an Rmarkdown script (src > frozen_new-tat-fxn.Rmd) . Knit (with parameters) a report for the month and save the resulting html file as PDF (print at 85% scaling in Chrome). Send turnaround time reports to Joel Karagacha ([joel.karagacha@uchealth.org](mailto:joel.karagacha@uchealth.org))
 
 ---
 
