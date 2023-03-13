@@ -42,17 +42,31 @@ source(here("fns", "define-clients.R"))
 ```
 
 ```{r load_clean_data, include = FALSE, message = FALSE, warning = FALSE}
-ta_time <- 
+ta_time <-
   list.files(path = here("data"),
-           pattern = "(\\d){4}-(\\d){2}-frozen\\.xls",
-           full.names = TRUE) %>% 
-  sapply(readxl::read_excel, simplify = FALSE, 
-         col_types =
-           c("guess", "guess", "guess", "numeric", "text", "guess", "guess", 
-             "guess", "guess",  "guess", "guess", "guess")
-  ) %>% 
-  bind_rows() %>% 
-  rename(`Sequence Group` = `SEQUENCE GROUP`) %>% 
+             pattern = "(\\d){4}-(\\d){2}-frozen\\.xls",
+             full.names = TRUE) %>%
+  sapply(
+    readxl::read_excel,
+    simplify = FALSE,
+    col_types =
+      c(
+        "guess",
+        "guess",
+        "guess",
+        "numeric",
+        "text",
+        "guess",
+        "guess",
+        "guess",
+        "guess",
+        "guess",
+        "guess",
+        "guess"
+      )
+  ) %>%
+  bind_rows() %>%
+  rename(`Sequence Group` = `SEQUENCE GROUP`) %>%
   mutate(
     `Sequence Group` = str_replace(`Sequence Group`, "\\*SURG", "SURG"),
     `Sequence Group` = str_replace(`Sequence Group`, "OP SURG", "SURG OP"),
@@ -60,18 +74,17 @@ ta_time <-
     PATHOLOGIST = str_replace(PATHOLOGIST, "\\[x] ", ""),
     type = str_extract(`Sequence Group`, "()[^(]+") %>% str_trim(),
     client = str_extract(`Sequence Group`, "(?<=\\().*?(?=\\))"),
-    Create = mdy_hm(Create),
+    Create = as_datetime(parse_date_time(Create, c("mdy HM", "mdy HMS"))),
     `original release` = mdy_hm(`original release`),
     period = month(Create, label = TRUE, abbr = FALSE),
     grp = client_abbr(`Sequence Group`),
     cl_grp = client_group(`Sequence Group`)
   ) %>%
   filter(
-    cl_grp == params$cl_grp, 
+    cl_grp == params$cl_grp,
     as_date(Create) >= params$dt_start,
-    as_date(Create) <= params$dt_end,
-    !is.na(`original release`), # drop deleted records
-    !is.na(PATHOLOGIST)
+    as_date(Create) <= params$dt_end,!is.na(`original release`),
+    # drop deleted records!is.na(PATHOLOGIST)
   ) 
 ```
 
@@ -92,12 +105,12 @@ ta_time$span <-
       working_hours = c(0, 24),
       holidays =
         c(
-          "2022-01-03",
-          "2022-05-30",
-          "2022-07-04",
-          "2022-09-05",
-          "2022-11-24",
-          "2022-12-26"
+          "2023-01-02",
+          "2023-05-29",
+          "2023-07-04",
+          "2023-09-04",
+          "2023-11-23",
+          "2023-12-25"
         )
     )
   })
@@ -122,11 +135,11 @@ ta_time %>%
   filter(cl_grp == params$cl_grp,
          period == month(params$dt_start,
                          label = TRUE,
-                         abbr = FALSE)) %>%  
+                         abbr = FALSE)) %>%
   mutate(
-    tat_surg = if_else(type == "SURG", span, NULL),
-    tat_ngyn = if_else(type == "NGYN", span, NULL),
-    tat_frozen = if_else(is.na(`FROZEN COMPLICATION`), `FROZEN DURATION`, NULL)
+    tat_surg = if_else(type == "SURG", span, NA),
+    tat_ngyn = if_else(type == "NGYN", span, NA),
+    tat_frozen = if_else(is.na(`FROZEN COMPLICATION`), `FROZEN DURATION`, NA)
   ) %>%
   group_by(grp) %>%
   summarize(
@@ -149,44 +162,44 @@ ta_time %>%
              subtitle = "") %>%
   tab_spanner(label = md("**Frozen (under 20 min)**"),
               c(frozen,
-                   `< 20 min`,
-                   `TAT (min)`,
-                   `% < 20 min`)) %>% 
+                `< 20 min`,
+                `TAT (min)`,
+                `% < 20 min`)) %>%
   tab_spanner(label = md("**Surgical**"),
               c(`n (SURG)`,
-                   surg48,
-                   `TAT (hrs, SURG)`,
-                   `% < 48 hrs (SURG)`)) %>% 
+                surg48,
+                `TAT (hrs, SURG)`,
+                `% < 48 hrs (SURG)`)) %>%
   tab_spanner(label = md("**Non-Gyn**"),
               c(`n (NGYN)`,
-                   ngyn48,
-                   `TAT (hrs, NGYN)`,
-                   `% < 48 hrs (NGYN)`)) %>% 
+                ngyn48,
+                `TAT (hrs, NGYN)`,
+                `% < 48 hrs (NGYN)`)) %>%
   fmt_number(
     columns = c(`TAT (min)`,
-                   `TAT (hrs, SURG)`,
-                   `TAT (hrs, NGYN)`),
+                `TAT (hrs, SURG)`,
+                `TAT (hrs, NGYN)`),
     decimals = 1,
     use_seps = TRUE
   ) %>%
   fmt_number(
     columns =
       c(frozen,
-           `< 20 min`,
-           `n (SURG)`,
-           `n (NGYN)`,
-           surg48,
-           ngyn48),
+        `< 20 min`,
+        `n (SURG)`,
+        `n (NGYN)`,
+        surg48,
+        ngyn48),
     decimals = 0,
     use_seps = TRUE
   ) %>%
   fmt_percent(
-    columns = c(`% < 20 min`, 
-                   `% < 48 hrs (SURG)`,
-                   `% < 48 hrs (NGYN)`),
+    columns = c(`% < 20 min`,
+                `% < 48 hrs (SURG)`,
+                `% < 48 hrs (NGYN)`),
     decimals = 1,
     use_seps = TRUE
-  ) %>% 
+  ) %>%
   cols_label(
     frozen = "n",
     `< 20 min` = "< 20 min",
@@ -200,13 +213,14 @@ ta_time %>%
     ngyn48 = "< 48 hrs",
     `TAT (hrs, NGYN)` = "Avg (hrs)",
     `% < 48 hrs (NGYN)` = "Percentage"
-  ) %>% 
+  ) %>%
   cols_align(align = "center") %>%
-  tab_options(table.width = pct(100),
-              # table.font.size = px(12),
-              heading.title.font.size = "28px",
-              heading.subtitle.font.size = px(28),
-              heading.title.font.weight = "bold",
-              heading.subtitle.font.weight = "bold"
-              )
+  tab_options(
+    table.width = pct(100),
+    # table.font.size = px(12),
+    heading.title.font.size = "28px",
+    heading.subtitle.font.size = px(28),
+    heading.title.font.weight = "bold",
+    heading.subtitle.font.weight = "bold"
+  )
 ```
