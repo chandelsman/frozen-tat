@@ -63,7 +63,7 @@ ta_time <-
     PATHOLOGIST = str_replace(PATHOLOGIST, "\\[x] ", ""),
     type = str_extract(`Sequence Group`, "()[^(]+") %>% str_trim(),
     client = str_extract(`Sequence Group`, "(?<=\\().*?(?=\\))"),
-    Create = mdy_hm(Create),
+    Create = as_datetime(parse_date_time(Create, c("mdy HM", "mdy HMS"))),
     `original release` = mdy_hm(`original release`),
     period = month(Create, label = TRUE, abbr = FALSE),
     grp = client_abbr(`Sequence Group`),
@@ -125,9 +125,9 @@ ta_time %>%
   mutate(
     Create = date(Create),
     `original release` = date(`original release`),
-    tat_surg = if_else(type == "SURG", span, NULL),
-    tat_ngyn = if_else(type == "NGYN", span, NULL),
-    tat_frozen = if_else(is.na(`FROZEN COMPLICATION`), `FROZEN DURATION`, NULL)
+    tat_surg = if_else(type == "SURG", span, NA),
+    tat_ngyn = if_else(type == "NGYN", span, NA),
+    tat_frozen = if_else(is.na(`FROZEN COMPLICATION`), `FROZEN DURATION`, NA)
   ) %>% 
   # filter(`original release` >= "2020-01-01" & 
   #          `original release` <= "2020-03-31") %>%
@@ -151,22 +151,22 @@ ta_time %>%
   tab_header(title = md("Quarterly Turnaround Time Statistics"),
              subtitle = "") %>%
   tab_spanner(label = md("**Frozen (under 20 min)**"),
-              vars(frozen,
+              c(frozen,
                    `< 20 min`,
                    `TAT (min)`,
                    `% < 20 min`)) %>% 
   tab_spanner(label = md("**Surgical**"),
-              vars(`n (SURG)`,
+              c(`n (SURG)`,
                    surg48,
                    `TAT (hrs, SURG)`,
                    `% < 48 hrs (SURG)`)) %>% 
   tab_spanner(label = md("**Non-Gyn**"),
-              vars(`n (NGYN)`,
+              c(`n (NGYN)`,
                    ngyn48,
                    `TAT (hrs, NGYN)`,
                    `% < 48 hrs (NGYN)`)) %>% 
   fmt_number(
-    columns = vars(`TAT (min)`,
+    columns = c(`TAT (min)`,
                    `TAT (hrs, SURG)`,
                    `TAT (hrs, NGYN)`),
     decimals = 1,
@@ -174,7 +174,7 @@ ta_time %>%
   ) %>%
   fmt_number(
     columns =
-      vars(frozen,
+      c(frozen,
            `< 20 min`,
            `n (SURG)`,
            `n (NGYN)`,
@@ -184,13 +184,13 @@ ta_time %>%
     use_seps = TRUE
   ) %>%
   fmt_percent(
-    columns = vars(`% < 20 min`, 
+    columns = c(`% < 20 min`, 
                    `% < 48 hrs (SURG)`,
                    `% < 48 hrs (NGYN)`),
     decimals = 1,
     use_seps = TRUE
   ) %>% 
-  fmt_missing(everything()) %>% 
+  sub_missing(everything()) %>% 
   cols_label(
     frozen = "n",
     `< 20 min` = "< 20 min",
