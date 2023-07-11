@@ -12,7 +12,7 @@ Frozen turnaround time report for CRMC. The script is a modification of the OPPE
 
 Query is performed in LigoLab
 
-- Reporting > Dynamic Reports > Path-Dash
+- Reporting > Dynamic Reports > Stats Pathologist TAT
 
 **Main Tab**
 
@@ -41,7 +41,7 @@ UCHealth North
 Reports are produced with an Rmarkdown script (src > frozen_new-tat-fxn.Rmd) . Knit (with parameters) a report for the month and save the resulting html file as PDF (print at 85% scaling in Chrome). Send turnaround time reports to Joel Karagacha ([joel.karagacha@uchealth.org](mailto:joel.karagacha@uchealth.org))
 
 CRMC
-Reports are produced with the 'frozen-tat-individual.Rmd' Rmarkdown script. Knit (with parameters), save as PDF (at 85% scaling), and send to Dr. Long (dlong@summitpathology.com )
+Reports are produced with the 'frozen-tat-individual.Rmd' Rmarkdown script. Knit (with parameters), save as PDF (at 85% scaling), upload to the Compliance SharePoint site (Compliance > Pathologist Quality Data Reports > Cheyenne Regional Medical Center (Long) > TAT_Frozen-sections), and notify Dr. Long via email (dlong@summitpathology.com ) or Teams
 
 ---
 
