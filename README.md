@@ -30,7 +30,7 @@ CRMC
 **Export Data**
 
 UCHealth North
-- export data as YYYYq#-frozen.xls to IT > Projects > frozen-turnaround-time > data
+- export data as YYYY-MM-frozen.xls to IT > Projects > frozen-turnaround-time > data
 
 CRMC
 - export data as YYYYq#-frozen-crmc.xls to IT > Projects > frozen-turnaround-time > data
